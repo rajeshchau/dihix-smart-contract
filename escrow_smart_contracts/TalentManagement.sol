@@ -33,6 +33,7 @@ contract ProjectManagement {
     event InterviewerRegistered(address interviewer, uint256 fee);
     event TalentPosted(uint256 projectId, address business);
     event ProjectsRetrieved(uint256[] activeProjects);
+    event ProjectClosed(uint projextid,address senderaddress);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Not authorized");
