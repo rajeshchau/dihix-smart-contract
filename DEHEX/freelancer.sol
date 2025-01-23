@@ -21,32 +21,32 @@ contract FreelancerContract {
         uint256 projectId;
         uint256 milestoneNumber;
         uint256 milestoneCompleted;
-        mapping(uint256 => FreelancerPayment) freelancerPayments; // Mapping by payment ID
+        mapping(uint256 => FreelancerPayment) freelancerPayments; 
     }
 
     struct Project {
         string projectId;
         bool isActive;
         uint256 totalApplications;
-        mapping(uint256 => uint256) appliedFreelancers; // Mapping of freelancer IDs to their application status
-        mapping(uint256 => Milestone) milestones; // Mapping by milestone ID
+        mapping(uint256 => uint256) appliedFreelancers; 
+        mapping(uint256 => Milestone) milestones; 
     }
 
     struct Freelancer {
         string freelancerId;
         address freelancerAddress;
-        mapping(uint256 => Project) projects; // Mapping by project ID
+        mapping(uint256 => Project) projects; 
     }
 
     struct Business {
         string businessId;
         address businessAddress;
-        mapping(uint256 => Project) projects; // Mapping by project ID
+        mapping(uint256 => Project) projects;
     }
 
     struct Hiring {
         string hiringId;
-        mapping(uint256 => Freelancer) freelancers; // Mapping by freelancer ID
+        mapping(uint256 => Freelancer) freelancers; 
         bool feesStatus;
     }
 
@@ -61,17 +61,17 @@ contract FreelancerContract {
         address freelanceraddress;
         address bussnessadress;
         uint256 projectid;
-        uint256 deposiedamount;
+        uint256 depositedamount;
         IERC20 tokenaddress;
     }
 
-    address public owner;
+    address private immutable owner;
 
-    mapping(uint256 => Freelancer) public freelancers; // Mapping of freelancer ID to Freelancer struct
-    mapping(uint256 => Project) public projects;       // Mapping of project ID to Project struct
-    mapping(uint256 => Business) public businesses;    // Mapping of business ID to Business struct
-    mapping(uint256 => Hiring) public hirings;         // Mapping of hiring ID to Hiring struct
-    mapping(uint256 => Oracle) public oracles;         // Mapping of oracle ID to Oracle struct
+    mapping(uint256 => Freelancer) public freelancers; 
+    mapping(uint256 => Project) public projects;      
+    mapping(uint256 => Business) public businesses;    
+    mapping(uint256 => Hiring) public hirings;         
+    mapping(uint256 => Oracle) public oracles;         
     mapping(uint256 => Escrow)public escrow;
 
     mapping(address => bool) public isOracles;
@@ -101,27 +101,27 @@ contract FreelancerContract {
         _;
     }
 
-    modifier onlyBuyerOrOracle(string _escrowid) {
+    modifier onlyBuyerOrOracle(string memory _escrowid) {
         require(msg.sender == escrow[_escrowid].bussnessadress || isOracles[msg.sender], "Not Authorized!");
         _;
     }
 
-    modifier onlyWhenDeposited(string _escrowid){
-        require( escrow[_escrowid].deposiedamount > 0, "No funds to release or refund!");
+    modifier onlyWhenDeposited(string memory _escrowid){
+        require( escrow[_escrowid].depositedamount > 0, "No funds to release or refund!");
         _;
     }
 
-    modifier onlySellerOrOrecle(string _escrowid){
+    modifier onlySellerOrOrecle(string memory _escrowid){
         require(msg.sender == escrow[_escrowid].freelanceraddress || isOracles[msg.sender], "Not Authorized!");
         _;
     }
 
-    function addBusinessToDehix(string _bussinessid, address _bussinessaddress) public {
+    function addBusinessToDehix(string memory _bussinessid, address _bussinessaddress) public {
         businesses[_bussinessid].businessId = _bussinessid;
         businesses[_bussinessid].businessAddress=_bussinessaddress;
     }
 
-    function addFreelancerToDehix(string _freelancerid,address _freelancerAddress) external onlyOwner {
+    function addFreelancerToDehix(string memory _freelancerid,address _freelancerAddress) external onlyOwner {
         require(_freelancerid != 0, "Freelancer ID cannot be 0");
         require(_freelancerid != freelancers[_freelancerid].freelancerId, "Freelancer ID already exists");
         require(_freelancerAddress != address(0), "Freelancer address cannot be 0");
@@ -132,7 +132,7 @@ contract FreelancerContract {
         emit FreelancerAdded(_freelancerid, _freelancerAddress);
     }
 
-    function createProjectToDehix(string _businessId,string _projectid) external onlyOwner returns (string) {
+    function createProjectToDehix(string memory _businessId,string memory _projectid) external onlyOwner returns (string) {
         require(_projectid != 0,"Project id could not be zero.");
         projects[_projectid].projectId = _projectid;
         projects[_projectid].isActive = true;
@@ -146,9 +146,9 @@ contract FreelancerContract {
     }
 
     function addMilestoneToDehix(
-        string _projectId,
+        string memory _projectId,
         uint256 _milestoneNumber,
-        string _milestoneid
+        string memory _milestoneid
     ) external onlyOwner {
         Project storage project = projects[_projectId];
         require(project.isActive, "Project is not active");
@@ -163,9 +163,9 @@ contract FreelancerContract {
     }
 
     function addFreelancerPaymentToDehix(
-        string _milestoneId,
-        string _freelancerId,
-        string _projectId,
+        string memory _milestoneId,
+        string memory _freelancerId,
+        string memory _projectId,
         uint256 _amount,
         State _state
     ) external onlyOwner {
@@ -182,7 +182,7 @@ contract FreelancerContract {
         emit PaymentAdded(_milestoneId, paymentId);
     }
 
-    function applyToProjectToDehix(string _projectId, string _freelancerId) external {
+    function applyToProjectToDehix(string memory _projectId, string memory _freelancerId) external {
         Project storage project = projects[_projectId];
         require(project.isActive, "Project is not active");
 
@@ -190,17 +190,17 @@ contract FreelancerContract {
         project.totalApplications++;
     }
 
-    function deactivateProjectToDehix(string _projectId) external onlyOwner {
+    function deactivateProjectToDehix(string memory _projectId) external onlyOwner {
         projects[_projectId].isActive = false;
     }
 
-    function assignOracleToDehix(string _oracleId, address _oracleAddress) external onlyOwner {
+    function assignOracleToDehix(string memory _oracleId, address _oracleAddress) external onlyOwner {
         oracles[_oracleId].oracleId = _oracleId;
         oracles[_oracleId].oracleAddress = _oracleAddress;
     }
 
     // Additional getters for retrieving nested mapping data
-    function getMilestone(string _projectId, string _milestoneId)
+    function getMilestone(string memory _projectId, string memory _milestoneId)
         external
         view
         returns (string, string, uint256, uint256)
@@ -214,10 +214,10 @@ contract FreelancerContract {
         );
     }
 
-    function getFreelancerPayment(uint256 _projectId, uint256 _milestoneId, uint256 _paymentId)
+    function getFreelancerPayment(string memory _projectId, string memory _milestoneId, string memory _paymentId)
         external
         view
-        returns (uint256, uint256, uint256, State)
+        returns (string, string, string, State)
     {
         FreelancerPayment storage payment = projects[_projectId].milestones[_milestoneId].freelancerPayments[_paymentId];
         return (
@@ -228,14 +228,14 @@ contract FreelancerContract {
         );
     }
 
-    function createescrow(string _escrowid,address[] memory _votingoracle,address _freelancer,address _bussness,string _projectid,address _tokenaddress)public{
+    function createescrow(string memory _escrowid,address[] memory _votingoracle,address _freelancer,address _bussness,string memory _projectid,address _tokenaddress)public{
         require(_votingoracle.length == 1 || _votingoracle.length == 3 || _votingoracle.length == 5,"Number of arbiters must be 1, 3, or 5");
         escrow[_escrowid].escrowid=_escrowid;
         escrow[_escrowid].votingoracles=_votingoracle;
         escrow[_escrowid].freelanceraddress=_freelancer;
         escrow[_escrowid].bussnessadress=_bussness;
         escrow[_escrowid].projectid=_projectid;
-        escrow[_escrowid].deposiedamount = 0;
+        escrow[_escrowid].depositedamount = 0;
         escrow[_escrowid].tokenaddress=IERC20(_tokenaddress);
 
         for (uint256 i = 0; i < _votingoracle.length; i++) {
@@ -246,26 +246,26 @@ contract FreelancerContract {
 
     }
 
-    function depositFundsToEscrow(uint256 _amount,string _escrowid) external {
+    function depositFundsToEscrow(uint256 _amount,string memory _escrowid) external {
         require(msg.sender == escrow[_escrowid].bussnessadress, "Only buyer can deposit funds!");
         require(_amount > 0, "Deposit must be greater than zero!");
-        require(escrow[_escrowid].deposiedamount == 0, "Funds already deposited!");
+        require(escrow[_escrowid].depositedamount == 0, "Funds already deposited!");
 
         // Transfer tokens from buyer to this contract securely
         escrow[_escrowid].tokenaddress.safeTransferFrom(msg.sender, address(this), _amount);
 
-        escrow[_escrowid].deposiedamount = _amount;
+        escrow[_escrowid].depositedamount = _amount;
         emit FundsDeposited(msg.sender, _amount);
     }
 
-    function releaseEscrowFunds(string _escrowid) external onlyBuyerOrOracle(_escrowid) onlyWhenDeposited(_escrowid) {
+    function releaseEscrowFunds(string memory _escrowid) external onlyBuyerOrOracle(_escrowid) onlyWhenDeposited(_escrowid) {
         require(_majorityVote(true), "Majority vote required to release funds!");
 
         // Transfer tokens to seller securely
-        escrow[_escrowid].tokenaddress.safeTransfer(escrow[_escrowid].freelanceraddress, escrow[_escrowid].deposiedamount);
+        escrow[_escrowid].tokenaddress.safeTransfer(escrow[_escrowid].freelanceraddress, escrow[_escrowid].depositedamount);
 
-        emit FundsReleased(escrow[_escrowid].freelanceraddress, escrow[_escrowid].deposiedamount);
-        escrow[_escrowid].deposiedamount = 0;
+        emit FundsReleased(escrow[_escrowid].freelanceraddress, escrow[_escrowid].depositedamount);
+        escrow[_escrowid].depositedamount = 0;
     }
 
     function _majorityVote(bool release) private view returns (bool) {
@@ -288,10 +288,10 @@ contract FreelancerContract {
         require(_majorityVote(false), "Majority vote required to refund funds!");
 
         // Transfer tokens back to buyer securely
-        escrow[_escrowid].tokenaddress.safeTransfer(escrow[_escrowid].bussnessadress, escrow[_escrowid].deposiedamount);
+        escrow[_escrowid].tokenaddress.safeTransfer(escrow[_escrowid].bussnessadress, escrow[_escrowid].depositedamount);
 
-        emit FundsRefunded(escrow[_escrowid].bussnessadress, escrow[_escrowid].deposiedamount);
-        escrow[_escrowid].deposiedamount = 0;
+        emit FundsRefunded(escrow[_escrowid].bussnessadress, escrow[_escrowid].depositedamount);
+        escrow[_escrowid].depositedamount = 0;
     }
 
     function _orecleVoted(address _orecle, bool _release) private view returns (bool) {
