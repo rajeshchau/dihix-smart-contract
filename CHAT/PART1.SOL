@@ -1,0 +1,191 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+contract FreelancerContract {
+    using SafeERC20 for IERC20;
+
+    enum State { Paid, Unpaid, Pending }
+
+    struct FreelancerPayment {
+        uint256 freelancerId;
+        uint256 projectId;
+        uint256 totalAmount;
+        State state;
+    }
+
+    struct Milestone {
+        uint256 milestoneId;
+        uint256 projectId;
+        uint256 milestoneNumber;
+        uint256 milestoneCompleted;
+        mapping(uint256 => FreelancerPayment) freelancerPayments; // Mapping by payment ID
+    }
+
+    struct Project {
+        uint256 projectId;
+        bool isActive;
+        uint256 totalApplications;
+        mapping(uint256 => uint256) appliedFreelancers; // Mapping of freelancer IDs to their application status
+        mapping(uint256 => Milestone) milestones; // Mapping by milestone ID
+    }
+
+    struct Freelancer {
+        uint256 freelancerId;
+        address freelancerAddress;
+        mapping(uint256 => Project) projects; // Mapping by project ID
+    }
+
+    struct Business {
+        uint256 businessId;
+        address businessAddress;
+        mapping(uint256 => Project) projects; // Mapping by project ID
+    }
+
+    struct Hiring {
+        uint256 hiringId;
+        mapping(uint256 => Freelancer) freelancers; // Mapping by freelancer ID
+        bool feesStatus;
+    }
+
+    struct Oracle {
+        uint256 oracleId;
+        address oracleAddress;
+    }
+
+    address public owner;
+
+    mapping(uint256 => Freelancer) public freelancers; // Mapping of freelancer ID to Freelancer struct
+    mapping(uint256 => Project) public projects;       // Mapping of project ID to Project struct
+    mapping(uint256 => Business) public businesses;    // Mapping of business ID to Business struct
+    mapping(uint256 => Hiring) public hirings;         // Mapping of hiring ID to Hiring struct
+    mapping(uint256 => Oracle) public oracles;         // Mapping of oracle ID to Oracle struct
+
+    uint256 public nextFreelancerId;
+    uint256 public nextProjectId;
+    uint256 public nextBusinessId;
+    uint256 public nextMilestoneId;
+    uint256 public nextHiringId;
+
+    event FreelancerAdded(uint256 indexed freelancerId, address freelancerAddress);
+    event ProjectCreated(uint256 indexed projectId, bool isActive);
+    event MilestoneAdded(uint256 indexed projectId, uint256 milestoneId);
+    event PaymentAdded(uint256 indexed milestoneId, uint256 paymentId);
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not the contract owner");
+        _;
+    }
+
+    function addFreelancer(uint256 _freelancerid,address _freelancerAddress) external onlyOwner {
+        require(_freelancerid != 0, "Freelancer ID cannot be 0");
+        require(_freelancerid != freelancers[_freelancerid].freelancerId, "Freelancer ID already exists");
+        require(_freelancerAddress != address(0), "Freelancer address cannot be 0");
+        
+        
+        freelancers[_freelancerid].freelancerId = _freelancerid;
+        freelancers[_freelancerid].freelancerAddress = _freelancerAddress;
+        emit FreelancerAdded(_freelancerid, _freelancerAddress);
+    }
+
+    function createProject(uint256 _businessId) external onlyOwner returns (uint256) {
+        uint256 id = nextProjectId++;
+        projects[id].projectId = id;
+        projects[id].isActive = true;
+        
+        Project storage project = projects[id];
+        businesses[_businessId].projects[id].projectId = project.projectId;
+        businesses[_businessId].projects[id].isActive = project.isActive;
+        businesses[_businessId].projects[id].totalApplications = project.totalApplications;
+        emit ProjectCreated(id, true);
+        return id;
+    }
+
+    function addMilestone(
+        uint256 _projectId,
+        uint256 _milestoneNumber
+    ) external onlyOwner {
+        Project storage project = projects[_projectId];
+        require(project.isActive, "Project is not active");
+
+        uint256 id = nextMilestoneId++;
+        project.milestones[id].milestoneId = id;
+        project.milestones[id].projectId = _projectId;
+        project.milestones[id].milestoneNumber = _milestoneNumber;
+        project.milestones[id].milestoneCompleted = 0;
+
+        emit MilestoneAdded(_projectId, id);
+    }
+
+    function addFreelancerPayment(
+        uint256 _milestoneId,
+        uint256 _freelancerId,
+        uint256 _projectId,
+        uint256 _amount,
+        State _state
+    ) external onlyOwner {
+        Milestone storage milestone = projects[_projectId].milestones[_milestoneId];
+
+        uint256 paymentId = milestone.milestoneCompleted++;
+        milestone.freelancerPayments[paymentId] = FreelancerPayment({
+            freelancerId: _freelancerId,
+            projectId: _projectId,
+            totalAmount: _amount,
+            state: _state
+        });
+
+        emit PaymentAdded(_milestoneId, paymentId);
+    }
+
+    function applyToProject(uint256 _projectId, uint256 _freelancerId) external {
+        Project storage project = projects[_projectId];
+        require(project.isActive, "Project is not active");
+
+        project.appliedFreelancers[_freelancerId] = 1; // Mark freelancer as applied
+        project.totalApplications++;
+    }
+
+    function deactivateProject(uint256 _projectId) external onlyOwner {
+        projects[_projectId].isActive = false;
+    }
+
+    function assignOracle(uint256 _oracleId, address _oracleAddress) external onlyOwner {
+        oracles[_oracleId].oracleId = _oracleId;
+        oracles[_oracleId].oracleAddress = _oracleAddress;
+    }
+
+    // Additional getters for retrieving nested mapping data
+    function getMilestone(uint256 _projectId, uint256 _milestoneId)
+        external
+        view
+        returns (uint256, uint256, uint256, uint256)
+    {
+        Milestone storage milestone = projects[_projectId].milestones[_milestoneId];
+        return (
+            milestone.milestoneId,
+            milestone.projectId,
+            milestone.milestoneNumber,
+            milestone.milestoneCompleted
+        );
+    }
+
+    function getFreelancerPayment(uint256 _projectId, uint256 _milestoneId, uint256 _paymentId)
+        external
+        view
+        returns (uint256, uint256, uint256, State)
+    {
+        FreelancerPayment storage payment = projects[_projectId].milestones[_milestoneId].freelancerPayments[_paymentId];
+        return (
+            payment.freelancerId,
+            payment.projectId,
+            payment.totalAmount,
+            payment.state
+        );
+    }
+}
